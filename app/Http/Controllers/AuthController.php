@@ -46,8 +46,7 @@ class AuthController extends Controller
     $email = $request->input('email');
     $password = $request->input('password');
     try {
-      $signInResult = $this->auth->signInWithEmailAndPassword($email, $password);
-
+      $signInResult = $auth->signInWithEmailAndPassword($email, $password);
       $idToken = $signInResult->idToken();
       session(['_token' => $idToken]); //to keep the user signed in.will be check constantly elsewhere
       // Verify the ID token and get the user
@@ -102,7 +101,6 @@ class AuthController extends Controller
       // After login, get user from Socialite/Firebase
       $auth = app('firebase')->createAuth();
       $google_user = Socialite::driver('google')->user();
-      var_dump($google_user);
       $google_user = json_decode(json_encode($google_user),true);
       //create a account for this Google account on first ever access
       $userProperties = [
@@ -114,24 +112,28 @@ class AuthController extends Controller
         'disabled' => false,
       ];
       try {
-        $user = $auth->createUser($userProperties);
-        $verifiedIdToken = $this->auth->verifyIdToken($google_user["token"]);
+        $user = $auth->createUser($userProperties);//creates a account for the google user for the first,if account already exists moves on to the catch block
+        $signInResult = $auth->signInWithEmailAndPassword($google_user["email"], "GoogleLoginNotRequired");
+        $idToken = $signInResult->idToken();
+        session(['_token' => $idToken]); //to keep the user signed in.will be check constantly elsewhere
+        // Verify the ID token and get the user
+        $verifiedIdToken = $this->auth->verifyIdToken($idToken);
         $uid = $verifiedIdToken->claims()->get('sub'); // 'sub' is the UID claim
         // Fetch user data from Firebase
         $user = $this->auth->getUser($uid);
         return response()->json(['user' => $user]);
       } catch (\Kreait\Firebase\Exception\Auth\EmailExists $e) {
-        $verifiedIdToken = $this->auth->verifyIdToken($google_user["token"]);
+        $signInResult = $auth->signInWithEmailAndPassword($google_user["email"], "GoogleLoginNotRequired");
+        $idToken = $signInResult->idToken();
+        session(['_token' => $idToken]); //to keep the user signed in.will be check constantly elsewhere
+        // Verify the ID token and get the user
+        $verifiedIdToken = $this->auth->verifyIdToken($idToken);
         $uid = $verifiedIdToken->claims()->get('sub'); // 'sub' is the UID claim
         // Fetch user data from Firebase
         $user = $this->auth->getUser($uid);
         return response()->json(['user' => $user]);
       }
-
-      //$idToken = session('temp_user')->idToken();      //
-      //session(['uid' => $firebaseUser->uid]);
-      //echo "session stored";
-      // Process user info and log them in
+      
     }catch(\Exception $e) {
       echo $e->getMessage();
     }
