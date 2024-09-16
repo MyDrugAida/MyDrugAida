@@ -3,22 +3,32 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Spatie\Permission\Models\Role;
+use Kreait\Firebase\Factory;
+
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
-    public function register(): void
-    {
-        //
-    }
+  /**
+  * Register any application services.
+  */
 
-    /**
-     * Bootstrap any application services.
-     */
-    public function boot(): void
-    {
-        //
-    }
+  public function register() {
+    $this->app->singleton('firebase.firestore', function ($app) {
+      return (new Factory)->withServiceAccount(__DIR__.'/firebase_credentials.json')
+      ->createFirestore()
+      ->database();
+    });
+  }
+
+
+  /**
+  * Bootstrap any application services.
+  */
+  public function boot(): void
+  {
+    /**Role::create(['name' => 'doctor']);
+    Role::create(['name' => 'pharmacist']);
+    Role::create(['name' => 'patient']);**/
+  }
 }

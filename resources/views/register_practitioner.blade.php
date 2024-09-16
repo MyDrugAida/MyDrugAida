@@ -44,7 +44,7 @@
 <body>
     <div class="container">
         <h2>Sign Up</h2>
-        <form action="/practitioner/signup" method="POST">
+        <form action="/practitioner/signup/pharmacist" method="POST">
           @csrf
             <input type="text" name="name" placeholder="Full Name" required>
             <input type="email" name="email" placeholder="Email Address" required>

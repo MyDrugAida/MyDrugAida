@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FirebaseController;
 use App\Http\Controllers\AuthController;
+use App\Services\FirebaseService;
+
 
 Route::get('/practitioners/register', function() {
   return view('register_practitioner');
@@ -10,26 +12,35 @@ Route::get('/practitioners/register', function() {
 Route::get('/practitioners/login', function() {
   return view('login_practitioner');
 });
-
+//AUTHENTICATION
 //Email & Password Login
-Route::post('/practitioner/signup', [AuthController::class, 'register']);
+Route::post('/practitioner/signup/{role}', [AuthController::class, 'register']);
 Route::post('/practitioner/login', [AuthController::class, 'login']);
 Route::get('/practitioner/logout', [AuthController::class, 'logout']);
 
-Route::get('/practitioner/verifyEmail',[AuthController::class,'verifyEmail']);
-Route::get('/practitioner/resetPassword',[AuthController::class,'resetPassword']);
+Route::get('/practitioner/verifyEmail', [AuthController::class, 'verifyEmail']);
+Route::get('/practitioner/resetPassword', [AuthController::class, 'resetPassword']);
 
 
 
 //Google Login
-Route::get('/test_google_auth', function(){
+Route::get('/test_google_auth', function() {
   return view('google_auth');
 });
-Route::get('auth/google', [AuthController::class, 'redirectToGoogle']);
+Route::get('auth/google/{role}', [AuthController::class, 'redirectToGoogle']);
+Route::get('google_redirect_location', [AuthController::class, 'GoogleLogin']);
 
-Route::get('google_redirect_location', [AuthController::class,'GoogleLogin']);
-//Route::get('auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
+Route::get('test', function() {
+  $firebase = new FirebaseService;
+  $firebase->storeUserData(1234555, [
+    'email' => "nn@gmail.com"
+    // Add other data fields as needed
+  ]);
+});
 
-//Route::get('/realtimedatabase', [FirebaseController::class,'realtimedatabase']);
 
+//FILL DETAILS AFTER AUTHENTICATION
+Route::get('fill_details',function(){
+  //return view(
+});
 ?>

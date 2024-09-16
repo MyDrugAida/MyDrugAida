@@ -9,14 +9,17 @@ use Illuminate\Http\Request;
 use Laravel\Socialite\Facades\Socialite;
 use Kreait\Firebase\Auth\Token\Exception\InvalidToken;
 use App\Http\Controllers\Controller;
+use App\Services\FirebaseRealtimeDatabaseService;
+
 
 class AuthController extends Controller
 {
   protected $auth;
   protected $google_sign_in;
 
-  public function __construct() {
+  public function __construct(Request $request) {
     $this->auth = app('firebase')->createAuth();
+    session(['role' => $request->route('role')]);
   }
 
   // Register practitioner
@@ -27,14 +30,19 @@ class AuthController extends Controller
       'password' => $request->input('password'),
       'displayName' => $request->input('name'),
       'dob' => $request->input('dob'),
+      'role' => 'pharmacist',
+      //change later
       'disabled' => false,
     ];
 
     try {
       $user = $this->auth->createUser($userProperties);
       if ($this->verifyEmail($request->input('email'))) {
-        echo "Verification link sent";
-        return response()->json(['status' => 'success', 'user' => $user]);
+        session(['emailVerified' => 'false']);
+        echo "<script> alert('Verification link sent');</script> ";
+
+        return $this->login($request);
+        //return response()->json(['status' => 'success', 'user' => $user]);
       }
     } catch (\Kreait\Firebase\Exception\Auth\EmailExists $e) {
       return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
@@ -46,15 +54,16 @@ class AuthController extends Controller
     $email = $request->input('email');
     $password = $request->input('password');
     try {
+      $auth = app('firebase')->createAuth();
       $signInResult = $auth->signInWithEmailAndPassword($email, $password);
       $idToken = $signInResult->idToken();
-      session(['_token' => $idToken]); //to keep the user signed in.will be check constantly elsewhere
       // Verify the ID token and get the user
       $verifiedIdToken = $this->auth->verifyIdToken($idToken);
       $uid = $verifiedIdToken->claims()->get('sub'); // 'sub' is the UID claim
       // Fetch user data from Firebase
-      $user = $this->auth->getUser($uid);
-      return response()->json(['user' => $user]);
+      session(['_uid' => $uid]); //to keep the user signed in.will be check constantly elsewhere
+      //$user = $this->auth->getUser($uid);
+      return $this->check($uid);
     } catch (\Exception $e) {
       return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
     }
@@ -101,7 +110,7 @@ class AuthController extends Controller
       // After login, get user from Socialite/Firebase
       $auth = app('firebase')->createAuth();
       $google_user = Socialite::driver('google')->user();
-      $google_user = json_decode(json_encode($google_user),true);
+      $google_user = json_decode(json_encode($google_user), true);
       //create a account for this Google account on first ever access
       $userProperties = [
         'email' => $google_user["email"],
@@ -112,32 +121,57 @@ class AuthController extends Controller
         'disabled' => false,
       ];
       try {
-        $user = $auth->createUser($userProperties);//creates a account for the google user for the first,if account already exists moves on to the catch block
+        $user = $auth->createUser($userProperties); //creates a account for the google user for the first,if account already exists moves on to the catch block
         $signInResult = $auth->signInWithEmailAndPassword($google_user["email"], "GoogleLoginNotRequired");
         $idToken = $signInResult->idToken();
-        session(['_token' => $idToken]); //to keep the user signed in.will be check constantly elsewhere
         // Verify the ID token and get the user
         $verifiedIdToken = $this->auth->verifyIdToken($idToken);
         $uid = $verifiedIdToken->claims()->get('sub'); // 'sub' is the UID claim
         // Fetch user data from Firebase
-        $user = $this->auth->getUser($uid);
-        return response()->json(['user' => $user]);
+        session(['_uid' => $uid]); //to keep the user signed in.will be check constantly elsewhere
+        //$user = $this->auth->getUser($uid);
+        return $this->check($uid);
+        //return response()->json(['user' => $user]);
       } catch (\Kreait\Firebase\Exception\Auth\EmailExists $e) {
         $signInResult = $auth->signInWithEmailAndPassword($google_user["email"], "GoogleLoginNotRequired");
         $idToken = $signInResult->idToken();
-        session(['_token' => $idToken]); //to keep the user signed in.will be check constantly elsewhere
         // Verify the ID token and get the user
         $verifiedIdToken = $this->auth->verifyIdToken($idToken);
         $uid = $verifiedIdToken->claims()->get('sub'); // 'sub' is the UID claim
         // Fetch user data from Firebase
-        $user = $this->auth->getUser($uid);
-        return response()->json(['user' => $user]);
+        session(['_uid' => $uid]); //to keep the user signed in.will be check constantly elsewhere
+        return $this->check($uid);
+        //$user = $this->auth->getUser($uid);
+        //return response()->json(['user' => $user]);
       }
-      
+
     }catch(\Exception $e) {
       echo $e->getMessage();
     }
   }
-
+  
+  protected function check($uid) {
+    //logic to check if email is verified should be here...
+    
+    $firebase = new FirebaseRealtimeDatabaseService;
+    if ($firebase->checkReference('any_user/'.$uid)) {
+      if ($firebase->getAnyUserData($uid)["filled"] == false) {
+        echo "return offender!";
+        return;
+        //take them to fill their details
+      } else {
+        echo "issue hereeee";
+        //takes them to home screen using their role
+      }
+    } else {
+      echo "first timer!";
+      $firebase->storeData('any_user/'.$uid, [
+        'filled' => false,
+        'role' => $request->route('role')
+      ]);
+      //refer to were it's to be filled
+    }
+  }
+  protected function assignRole() {}
 }
 ?>
