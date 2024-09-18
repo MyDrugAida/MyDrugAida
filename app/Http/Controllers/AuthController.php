@@ -150,7 +150,9 @@ class AuthController extends Controller
     }
   }
   
+    //checks if user/patient has verified their email or filled in complete data
   protected function check($uid) {
+    
     //logic to check if email is verified should be here...
     
     $firebase = new FirebaseRealtimeDatabaseService;
