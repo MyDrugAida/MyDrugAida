@@ -12,10 +12,10 @@ return new class extends Migration
     public function up():void
 {
     Schema::create('patients', function (Blueprint $table) {
-        $table->id();
-        $table->string('firebase_uid')->unique(); // Stores Firebase UID
+        //$table->id();
+        $table->string('firebase_uid')->primary(); // Stores Firebase UID
         $table->string('status'); // active, inactive
-        $table->string('card_serial')->unique();//will be updated later
+        $table->string('card_serial')->nullable()->unique();//will be updated later
         $table->timestamps();
     });
 }

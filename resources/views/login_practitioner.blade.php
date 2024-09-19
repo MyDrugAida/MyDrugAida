@@ -44,7 +44,7 @@
 <body>
     <div class="container">
         <h2>Sign In</h2>
-        <form action="/practitioner/login" method="POST">
+        <form action="/login" method="POST">
           @csrf
             <input type="email" name="email" placeholder="Email Address" required>
             <input type="password" name="password" placeholder="Password" required>

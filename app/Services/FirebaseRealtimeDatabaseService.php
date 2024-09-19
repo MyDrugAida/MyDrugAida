@@ -11,7 +11,7 @@ class FirebaseRealtimeDatabaseService
     public function __construct()
     {
         $factory = (new Factory)->withServiceAccount(__DIR__.'/firebase_credentials.json')
-                                 ->withDatabaseUri(env('FIREBASE_DATABASE_URL'));
+                                 ->withDatabaseUri("https://mydrugaida-1234-default-rtdb.firebaseio.com/mydrugaida");
         $this->database = $factory->createDatabase();
     }
 
@@ -23,7 +23,7 @@ class FirebaseRealtimeDatabaseService
 
     public function getAnyUserData($userId)
     {
-        $reference = $this->database->getReference('any_user/' . $userId);
+        $reference = $this->database->getReference($userId);
         return $reference->getValue();
     }
     

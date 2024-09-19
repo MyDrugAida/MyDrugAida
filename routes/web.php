@@ -6,17 +6,17 @@ use App\Http\Controllers\AuthController;
 use App\Services\FirebaseService;
 
 
-Route::get('/practitioners/register', function() {
+Route::get('/register', function() {
   return view('register_practitioner');
 });
-Route::get('/practitioners/login', function() {
+Route::get('/login', function() {
   return view('login_practitioner');
 });
 //AUTHENTICATION
 //Email & Password Login
-Route::post('/practitioner/signup/{role}', [AuthController::class, 'register']);
-Route::post('/practitioner/login', [AuthController::class, 'login']);
-Route::get('/practitioner/logout', [AuthController::class, 'logout']);
+Route::post('/signup/{role}', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
+Route::get('/logout', [AuthController::class, 'logout']);
 
 Route::get('/practitioner/verifyEmail', [AuthController::class, 'verifyEmail']);
 Route::get('/practitioner/resetPassword', [AuthController::class, 'resetPassword']);

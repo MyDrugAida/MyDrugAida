@@ -13,7 +13,7 @@
   <script>
     document.getElementById('googleLogin').addEventListener('click', function() {
       // Replace this with your Laravel endpoint that starts the Google OAuth flow
-      window.location.href = '/auth/google';
+      window.location.href = '/auth/google/patient';
     });
   </script>
 </body>

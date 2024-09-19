@@ -30,8 +30,8 @@ return new class extends Migration
         */
   public function up():void {
     Schema::create('users', function (Blueprint $table) {
-      $table->id();
-      $table->string('firebase_uid')->unique(); // Stores Firebase UID
+      //$table->id();
+      $table->string('firebase_uid')->primary(); // Stores Firebase UID
       $table->string('role');
       $table->string('status'); // active, inactive
       $table->timestamps();

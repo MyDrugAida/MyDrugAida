@@ -8,12 +8,16 @@ use App\Models\GeneticInfo;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Permission\Traits\HasRoles;
 
 class Patient extends Model
 {
   use HasFactory;
+  use HasRoles;
+  
+  protected $primaryKey = 'firebase_uid';
   protected $fillable = [
-    'firebase_uid','card_serial','status'
+    'firebase_uid','status'
     ];
     
   public function prescriptions() {
