@@ -5,6 +5,8 @@
 /public/storage
 /storage/*.key
 /vendor
+/app/Http/Providers/firebase_credentials.json
+firebase_credentials.json
 .env
 .env.backup
 .env.production

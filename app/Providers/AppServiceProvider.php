@@ -27,8 +27,8 @@ class AppServiceProvider extends ServiceProvider
   */
   public function boot(): void
   {
-    /**Role::create(['name' => 'doctor']);
-    Role::create(['name' => 'pharmacist']);
-    Role::create(['name' => 'patient']);**/
+    if (config('app.env') === 'production') {
+      \URL::forceScheme('https');
+    }
   }
 }

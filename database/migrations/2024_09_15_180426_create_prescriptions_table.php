@@ -18,7 +18,7 @@ return new class extends Migration
       $table->date('start_date');
       $table->date('end_date');
       $table->boolean('flagged')->default(false);
-      $table->string('flagged_by');
+      $table->string('flagged_by')->default('[]');
         $table->timestamps();
       });
     }

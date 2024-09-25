@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use Kreait\Firebase\Auth;
 use Kreait\Firebase\Exception\Auth\EmailExists;
-
 use Illuminate\Http\Request;
 use Laravel\Socialite\Facades\Socialite;
 use Kreait\Firebase\Auth\Token\Exception\InvalidToken;
@@ -12,7 +10,8 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Patient;
 use App\Services\FirebaseRealtimeDatabaseService;
-use Spatie\Permission\Models\Role;
+use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\SessionController;
 
 class AuthController extends Controller
 {
@@ -27,7 +26,7 @@ class AuthController extends Controller
   // Register practitioner
   public function register(Request $request) {
     //remove previous session
-    $this->removeSession();
+    SessionController::logout();
 
     $userProperties = [
       'email' => $request->input('email'),
@@ -49,27 +48,20 @@ class AuthController extends Controller
         // Verify the ID token and get the user
         $verifiedIdToken = $this->auth->verifyIdToken($idToken);
         $uid = $verifiedIdToken->claims()->get('sub'); // 'sub' is the UID claim
-        //fetch user data from Firebase
+        //check if registration is being done by patient themselves or a authenticated practitioner 
+        //if(session('registration_by_p')){
         $this->firstTimer($uid);
+        //}
       }
     } catch (\Kreait\Firebase\Exception\Auth\EmailExists $e) {
       return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
     }
   }
 
-  protected function removeSession() {
-    if (session()->has('role')) {
-      session()->forget('role');
-    }
-    if (session()->has('_uid')) {
-      session()->forget('_uid');
-    }
-  }
-
   // Login practitioner
   public function login(Request $request) {
     //remove previous session
-    $this->removeSession();
+    SessionController::logout();
 
     $email = $request->input('email');
     $password = $request->input('password');
@@ -80,13 +72,13 @@ class AuthController extends Controller
       // Verify the ID token and get the user
       $verifiedIdToken = $this->auth->verifyIdToken($idToken);
       $uid = $verifiedIdToken->claims()->get('sub'); // 'sub' is the UID claim
-      //fetch user data from Firebase
-      session(['_uid' => $uid]); //to keep the user signed in.will be check constantly elsewhere
       return $this->check($uid);
+
     } catch (\Exception $e) {
       return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
     }
   }
+
 
   protected function verifyEmail($email = null) {
     $user = $this->auth->getUserByEmail($email);
@@ -118,7 +110,7 @@ class AuthController extends Controller
 
   public function redirectToGoogle(Request $request) {
     //remove previous session
-    $this->removeSession();
+    SessionController::logout();
     session(['role' => $request->route('role')]);
     return Socialite::driver('google')->redirect();
   }
@@ -152,11 +144,8 @@ class AuthController extends Controller
         // Verify the ID token and get the user
         $verifiedIdToken = $this->auth->verifyIdToken($idToken);
         $uid = $verifiedIdToken->claims()->get('sub'); // 'sub' is the UID claim
-
-        session(['_uid' => $uid]); //to keep the user signed in.will be check constantly elsewhere
-
-        return $this->firstTimer($uid,true);
-
+        $this->firstTimer($uid, true);
+        $this->check($uid, true);
       } catch (\Kreait\Firebase\Exception\Auth\EmailExists $e) {
         //this catch block means that the google account already is registered with firebase
         $signInResult = $auth->signInWithEmailAndPassword($google_user["email"], "GoogleLoginNotRequired");
@@ -164,10 +153,9 @@ class AuthController extends Controller
         // Verify the ID token and get the user
         $verifiedIdToken = $this->auth->verifyIdToken($idToken);
         $uid = $verifiedIdToken->claims()->get('sub'); // 'sub' is the UID claim
-        session(['_uid' => $uid]); //to keep the user signed in.will be check constantly elsewhere
         //confirms that the email is verified and vital information is filled if not it tells them to either go verify or fill.
         $this->check($uid, true);
-        
+
       }
 
     }catch(\Exception $e) {
@@ -189,26 +177,27 @@ class AuthController extends Controller
         return;
         //take them to fill their details
       } else {
-        echo "no issue hereeee";
+        SessionController::login($uid);
         //takes them to home screen using their role
       }
     }
   }
 
   //only firstTimer calls firstTimerHelper
-  protected function firstTimer($uid, $google = false) {
-    echo $uid;
-    echo session('role');
-    //save to realtime database
+  protected function firstTimer($uid, $redirect = false) {
     $firebase = new FirebaseRealtimeDatabaseService;
     $firebase->storeData('any_user/'.$uid, [
       'filled' => false,
-      'role' => session('role')
+      'role' => session('role') //setting the role here is crucial
     ]);
     //save to laravel Database
     $this->firstTimerHelper($uid);
-    if (!$google) {
-      return redirect('/login');
+    //invalidate the role session
+    session()->forget('role');
+    if (!$redirect) {
+      //return redirect('/login');
+    }else if($redirect){
+      //go to dashboard
     }
   }
 
@@ -218,15 +207,17 @@ class AuthController extends Controller
         'firebase_uid' => $uid,
         'status' => 'active'
       ]);
-    } else if (session('role') == 'user') {
+      try {
+        $Permission = new PermissionController;
+        $Permission->setPatientRole($uid);
+      }catch(Exception $e) {}
+
+    } else if (session('role') == 'doctor' || session('role') == 'pharmacist') {
       User::create([
         'firebase_uid' => $uid,
-        'role' => session('role'),
         'status' => 'active'
       ]);
     }
   }
-
-  protected function assignRole() {}
 }
 ?>
